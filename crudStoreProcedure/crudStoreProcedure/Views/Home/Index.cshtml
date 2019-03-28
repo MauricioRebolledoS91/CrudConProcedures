@@ -1,0 +1,179 @@
+﻿@model crudStoreProcedure.Models.UserViewModel
+@{
+    ViewBag.Title = "Home Page";
+}
+@Html.ValidationSummary(true, "", new { @class = "text-danger" })
+<div class="form-horizontal">
+
+    <div id="UserList" onload="LoadUsers();">
+
+    </div>
+    <div class="AddNewUser">
+        @Html.Label("Add new user")
+    </div>
+    <div id="AddUser" style="display:none;">
+        @Html.Label("First Name")
+        @Html.TextBox("FirstName", null)
+        @Html.ValidationMessageFor(model => model.UserFirstName, "", new { @class = "text-danger" })
+        <br />
+        @Html.Label("Last Name")
+        @Html.TextBox("LastName", null)
+        @Html.ValidationMessageFor(model => model.UserLastName, "", new { @class = "text-danger" })
+        <br />
+        <input type="submit" onclick="AddUser(event)" value="SAVE" id="btnSaveUser" />
+    </div>
+
+    <div id="EditUser" style="display:none;">
+        @Html.Label("First Name")
+        @Html.TextBox("FirstNameEdit", null)
+        @Html.ValidationMessageFor(model => model.UserFirstName, "", new { @class = "text-danger" })
+        <br />
+        @Html.Label("Last Name")
+        @Html.TextBox("LastNameEdit", null)
+        @Html.ValidationMessageFor(model => model.UserLastName, "", new { @class = "text-danger" })
+        <br />
+        @Html.Hidden("UserIDEdit")
+        <input type="submit" onclick="UpdateUser(event)" value="SAVE" id="btnSaveUse" />
+    </div>
+</div>
+
+
+@section Scripts{
+    @Scripts.Render("~/bundles/jqueryval")
+  
+    <script type="text/javascript">
+        $(document).ready(function () {
+           
+            LoadUsers();
+            $('#AddUser').dialog({
+                autoOpen: false,
+                height: 200,
+                width: 500,
+                modal: false
+            });
+            $(".AddNewUser").click(function (e) {
+                e.stopPropagation();
+                $('#AddUser').dialog('option', 'title', 'Add User');
+                $('#AddUser').dialog('open');
+            });
+            $('#EditUser').dialog({
+                autoOpen: false,
+                height: 200,
+                width: 500,
+                modal: false
+            });
+        });
+
+        function LoadUsers() {
+            var users = {};
+            users.url = '@Url.Action("GetUserList", "Home")';
+            users.type = 'GET';
+            users.dataType = 'json';
+            users.contentType = 'application/json';
+            users.success = function (Users) {
+                if (Users.length > 0) {
+                    $('#UserList').append('<table>');
+                    $('#UserList').append('<tr><th>First Name</th><th>Last Name</th><th></th><th></th></tr>');
+                    $.each(Users, function (i, User) {
+                        $('#UserList').append('<tr><td class="FirstName">'
+                            + User.UserFirstName + '</td><td class="LastName">'
+                            + User.UserLastName + '</td><td><input type="hidden" id="hid" value="'
+                            + User.UserID + '" /> <input type="submit" value="EDIT" name="btn" id="btnEdit" onclick="EditUser(this);"</td><td><a href="#" id="btnDelete" onclick="DeleteUser(this);">DELETE</a></td></tr>');
+
+                    });
+
+                    $('#UserList').append('</table>');
+                }
+            };
+            $.ajax(users);
+        }
+        function AddUser(e) {
+            var UserRec = {};
+            UserRec.UserFirstName = $('#FirstName').val();
+            UserRec.UserLastName = $('#LastName').val();
+            $.ajax({
+                url: '@Url.Action("SaveUser", "Home")',
+                type: 'POST',
+                data: '{user: ' + JSON.stringify(UserRec) + '}',
+                contentType: 'application/json; charset=utf-8',
+                dataType: 'json',
+                success: function (response) {
+                    if (response.ErrorMessage != null) {
+                        alert(response.ErrorMessage);
+                    }
+                    else {
+                        window.location.href = response.Url;
+                    }
+                },
+                error: function (xhr, status, error) {
+                    var el = document.createElement('html');
+                    el.innerHTML = xhr.responseText;
+                    alert(el.getElementByTagName('title')[0].innerText);
+                }
+
+            });
+        }
+        function EditUser(e) {
+            var row = $(e).closest('tr');
+            var UserID = row.find($("[id*=hid]")).val();
+            var FirstName = row.find(".FirstName").text();
+            var LastName = row.find(".LastName").text();
+            $('#FirstNameEdit').val(FirstName);
+            $('#LastNameEdit').val(LastName);
+            $('#UserIDEdit').val(UserID);
+            $('#EditUser').dialog('option', 'title', 'Edit User');
+            $('#EditUser').dialog('open');
+        }
+        function UpdateUser(e) {
+            var UserRec = {};
+            UserRec.UserFirstName = $('#FirstNameEdit').val();
+            UserRec.UserLastName = $('#LastNameEdit').val();
+            UserRec.UserID = $('#UserIDEdit').val();
+            $.ajax({
+                url: '@Url.Action("UpdateUser", "Home")',
+                type: 'POST',
+                data: '{user: ' + JSON.stringify(UserRec) + '}',
+                contentType: 'application/json; charset=utf-8',
+                dataType: 'json',
+                success: function (response) {
+                    if (response.ErrorMessage != null) {
+                        alert(response.ErrorMessage);
+                    }
+                    else {
+                        window.location.href = response.Url;
+                    }
+                },
+                error: function (xhr, status, error) {
+                    var el = document.createElement('html');
+                    el.innerHTML = xhr.responseText;
+                    alert(el.getElementByTagName('title')[0].innerText);
+                }
+            });
+        }
+        function DeleteUser(e) {
+            var row = $(e).closest('tr');
+            var UserID = row.find($("[id*=hid]")).val();
+            $.ajax({
+                url: '@Url.Action("DeleteUser", "Home")',
+                type: 'POST',
+                data: JSON.stringify({ UserID: UserID }),
+                contentType: 'application/json; charset=utf-8',
+                dataType: 'json',
+                success: function (response) {
+                    if (response.ErrorMessage != null) {
+                        alert(response.ErrorMessage);
+                    }
+                    else {
+                        window.location.href = response.Url;
+                    }
+                },
+                error: function (xhr, status, error) {
+                    var el = document.createElement('html');
+                    el.innerHTML = xhr.responseText;
+                    alert(el.getElementByTagName('title')[0].innerText);
+                }
+            });
+        }
+    </script>
+}
+
